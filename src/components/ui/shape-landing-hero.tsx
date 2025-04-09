@@ -3,7 +3,97 @@
 import { motion } from "framer-motion";
 import { Circle } from "lucide-react";
 import { cn } from "@/lib/utils";
-import Image from "next/image"; // Make sure to import Next.js Image component
+import Image from "next/image";
+import { useEffect, useState, useId } from "react";
+import { MotionValue, useSpring, useTransform, motionValue } from "framer-motion";
+import useMeasure from "react-use-measure";
+
+// Sliding number components
+const TRANSITION = {
+  type: "spring",
+  stiffness: 280,
+  damping: 18,
+  mass: 0.3,
+};
+
+function Digit({ value, place }: { value: number; place: number }) {
+  const valueRoundedToPlace = Math.floor(value / place) % 10;
+  const initial = motionValue(valueRoundedToPlace);
+  const animatedValue = useSpring(initial, TRANSITION);
+
+  useEffect(() => {
+    animatedValue.set(valueRoundedToPlace);
+  }, [animatedValue, valueRoundedToPlace]);
+
+  return (
+    <div className="relative inline-block w-[1ch] overflow-x-visible overflow-y-clip leading-none tabular-nums">
+      <div className="invisible">0</div>
+      {Array.from({ length: 10 }, (_, i) => (
+        <Number key={i} mv={animatedValue} number={i} />
+      ))}
+    </div>
+  );
+}
+
+function Number({ mv, number }: { mv: MotionValue<number>; number: number }) {
+  const uniqueId = useId();
+  const [ref, bounds] = useMeasure();
+
+  const y = useTransform(mv, (latest) => {
+    if (!bounds.height) return 0;
+    const placeValue = latest % 10;
+    const offset = (10 + number - placeValue) % 10;
+    let memo = offset * bounds.height;
+
+    if (offset > 5) {
+      memo -= 10 * bounds.height;
+    }
+
+    return memo;
+  });
+
+  if (!bounds.height) {
+    return (
+      <span ref={ref} className="invisible absolute">
+        {number}
+      </span>
+    );
+  }
+
+  return (
+    <motion.span
+      style={{ y }}
+      layoutId={`${uniqueId}-${number}`}
+      className="absolute inset-0 flex items-center justify-center"
+      transition={TRANSITION}
+      ref={ref}
+    >
+      {number}
+    </motion.span>
+  );
+}
+
+function SlidingNumber({ value }: { value: number }) {
+  const absValue = Math.abs(value);
+  const integerValue = Math.floor(absValue);
+  const paddedInteger = integerValue < 10 ? `0${integerValue}` : `${integerValue}`;
+  const integerDigits = paddedInteger.split("");
+  const integerPlaces = integerDigits.map((_, i) =>
+    Math.pow(10, integerDigits.length - i - 1)
+  );
+
+  return (
+    <div className="flex items-center">
+      {integerDigits.map((_, index) => (
+        <Digit
+          key={`pos-${integerPlaces[index]}`}
+          value={integerValue}
+          place={integerPlaces[index]}
+        />
+      ))}
+    </div>
+  );
+}
 
 function ElegantShape({
     className,
@@ -46,7 +136,7 @@ function ElegantShape({
                 }}
                 transition={{
                     duration: 12,
-                    repeat: Number.POSITIVE_INFINITY,
+                    repeat: Infinity,
                     ease: "easeInOut",
                 }}
                 style={{
@@ -92,6 +182,49 @@ function HeroGeometric({
             },
         }),
     };
+
+    // Countdown timer state and logic
+    const [timeLeft, setTimeLeft] = useState({
+        days: 0,
+        hours: 0,
+        minutes: 0,
+        seconds: 0
+    });
+
+    useEffect(() => {
+        const targetDate = new Date('2025-04-25T09:00:00').getTime();
+        
+        const updateTimer = () => {
+            const now = new Date().getTime();
+            const difference = targetDate - now;
+
+            if (difference > 0) {
+                const days = Math.floor(difference / (1000 * 60 * 60 * 24));
+                const hours = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((difference % (1000 * 60)) / 1000);
+
+                setTimeLeft({
+                    days,
+                    hours,
+                    minutes,
+                    seconds
+                });
+            } else {
+                setTimeLeft({
+                    days: 0,
+                    hours: 0,
+                    minutes: 0,
+                    seconds: 0
+                });
+            }
+        };
+
+        updateTimer();
+        const timer = setInterval(updateTimer, 1000);
+
+        return () => clearInterval(timer);
+    }, []);
 
     return (
         <div className="relative min-h-screen w-full flex items-center justify-center overflow-hidden bg-[#030303]">
@@ -212,6 +345,50 @@ function HeroGeometric({
                             Crafting exceptional digital experiences through
                             innovative design and cutting-edge technology.
                         </p>
+                    </motion.div>
+
+                    {/* Countdown Timer Section with sliding animation */}
+                    <motion.div
+                        custom={4}
+                        variants={fadeUpVariants}
+                        initial="hidden"
+                        animate="visible"
+                        className="mt-12"
+                    >
+                        <div className="inline-flex flex-col items-center">
+                            <h3 className="text-sm sm:text-base text-white/60 mb-4 tracking-widest">
+                                EVENT STARTS IN
+                            </h3>
+                            <div className="flex gap-2 sm:gap-4 items-center">
+                                <div className="flex flex-col items-center">
+                                    <div className="text-2xl sm:text-4xl font-bold text-white flex">
+                                        <SlidingNumber value={timeLeft.days} />
+                                    </div>
+                                    <div className="text-xs sm:text-sm text-white/60 mt-2">DAYS</div>
+                                </div>
+                                <div className="text-2xl sm:text-4xl font-bold text-white pb-4">:</div>
+                                <div className="flex flex-col items-center">
+                                    <div className="text-2xl sm:text-4xl font-bold text-white flex">
+                                        <SlidingNumber value={timeLeft.hours} />
+                                    </div>
+                                    <div className="text-xs sm:text-sm text-white/60 mt-2">HOURS</div>
+                                </div>
+                                <div className="text-2xl sm:text-4xl font-bold text-white pb-4">:</div>
+                                <div className="flex flex-col items-center">
+                                    <div className="text-2xl sm:text-4xl font-bold text-white flex">
+                                        <SlidingNumber value={timeLeft.minutes} />
+                                    </div>
+                                    <div className="text-xs sm:text-sm text-white/60 mt-2">MINUTES</div>
+                                </div>
+                                <div className="text-2xl sm:text-4xl font-bold text-white pb-4">:</div>
+                                <div className="flex flex-col items-center">
+                                    <div className="text-2xl sm:text-4xl font-bold text-white flex">
+                                        <SlidingNumber value={timeLeft.seconds} />
+                                    </div>
+                                    <div className="text-xs sm:text-sm text-white/60 mt-2">SECONDS</div>
+                                </div>
+                            </div>
+                        </div>
                     </motion.div>
                 </div>
             </div>
