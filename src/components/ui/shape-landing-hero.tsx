@@ -3,7 +3,7 @@
 import { motion } from "framer-motion";
 import { Circle } from "lucide-react";
 import { cn } from "@/lib/utils";
-
+import Image from "next/image"; // Make sure to import Next.js Image component
 
 function ElegantShape({
     className,
@@ -146,8 +146,28 @@ function HeroGeometric({
 
             <div className="relative z-10 container mx-auto px-4 md:px-6">
                 <div className="max-w-3xl mx-auto text-center">
+                    {/* Logo Section */}
                     <motion.div
                         custom={0}
+                        variants={fadeUpVariants}
+                        initial="hidden"
+                        animate="visible"
+                        className="mb-8 flex justify-center"
+                    >
+                        <div className="relative w-38 h-38 md:w-44 md:h-44">
+                            <Image
+                                src="/icon.png" // Replace with your actual logo path
+                                alt="Lakshya 2025 Logo"
+                                fill
+                                className="object-contain"
+                                priority
+                            />
+                        </div>
+                    </motion.div>
+
+                    {/* Badge Section */}
+                    <motion.div
+                        custom={1}
                         variants={fadeUpVariants}
                         initial="hidden"
                         animate="visible"
@@ -159,8 +179,9 @@ function HeroGeometric({
                         </span>
                     </motion.div>
 
+                    {/* Title Section */}
                     <motion.div
-                        custom={1}
+                        custom={2}
                         variants={fadeUpVariants}
                         initial="hidden"
                         animate="visible"
@@ -180,8 +201,9 @@ function HeroGeometric({
                         </h1>
                     </motion.div>
 
+                    {/* Description Section */}
                     <motion.div
-                        custom={2}
+                        custom={3}
                         variants={fadeUpVariants}
                         initial="hidden"
                         animate="visible"
@@ -199,4 +221,4 @@ function HeroGeometric({
     );
 }
 
-export { HeroGeometric }
+export { HeroGeometric };
